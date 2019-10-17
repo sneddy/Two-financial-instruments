@@ -31,7 +31,6 @@ def validate_sklearn_model(model, data, base_cols, valid_ratio, test_ratio, drop
     if valid_ratio!=0:
         model.fit(train[selected_cols], train.returns)
         y_valid_predicted = model.predict(valid[selected_cols])
-        
         y_valid_predicted[valid.periods_before_closing == 0] = 0
         
         metrics_dict['valid_mse'] = mean_squared_error(y_valid_predicted, valid.returns)
@@ -54,6 +53,71 @@ def validate_sklearn_model(model, data, base_cols, valid_ratio, test_ratio, drop
 #     metrics_dict['model'] = model
     return metrics_dict
 
+def validate_model_by_triplets(model, df, base_cols, triplets, droprows=0):
+    selected_cols = base_cols.copy()
+    helper_cols = list(set(selected_cols + ['periods_before_closing', 'returns']))
+    metrics_dict = {}
+    
+    for triplet in triplets:
+        name = '{}-{}-{}'.format(*map(lambda x: str(int(x*100)), triplet))
+        
+        train, valid, test = time_split(df[helper_cols], triplet[1], triplet[2])
+        train.drop(np.arange(droprows), inplace=True)
+        train.dropna(inplace=True)
+        
+        model.fit(train[selected_cols], train.returns)
+        y_valid_predicted = model.predict(valid[selected_cols])
+        y_valid_predicted[valid.periods_before_closing == 0] = 0
+        
+#         valid_mse = mean_squared_error(y_valid_predicted, valid.returns)
+        valid_r2 = r2_score(valid.returns, y_valid_predicted) * 100
+        
+        model.fit(train.append(valid)[selected_cols], train.append(valid).returns)
+        y_test_predicted = model.predict(test[selected_cols])
+        y_test_predicted[test.periods_before_closing == 0] = 0
+#         metrics_dict['test_mse'] = mean_squared_error(y_test_predicted, test.returns)
+        test_r2 = r2_score(test.returns, y_test_predicted) * 100
+    
+        metrics_dict[name] = {'valid_r2': valid_r2, 'test_r2': test_r2}
+    
+    report = pd.DataFrame(metrics_dict)
+
+    report['min_stats'] = report.iloc[:,:len(triplets)].min(1).astype(np.float16)
+    report['max_stats'] = report.iloc[:,:len(triplets)].max(1).astype(np.float16)
+    report['avg'] = report.mean(1).astype(np.float16)
+    return report
+
+def validate_model_by_pentate(model, df, base_cols, droprows=0):
+    selected_cols = base_cols.copy()
+    helper_cols = list(set(selected_cols + ['periods_before_closing', 'returns']))
+    metrics_dict = {}
+    
+    for step in range(5, 10):
+        n_train = int(df.shape[0] * step // 10)
+        n_test = int(df.shape[0] * (step + 1) // 10)
+        train = df.iloc[:n_train].reset_index(drop=True).copy()
+        test = df.iloc[n_train:n_test].reset_index(drop=True).copy()
+        train.drop(np.arange(droprows), inplace=True)
+        train.dropna(inplace=True)
+
+        model.fit(train[selected_cols], train.returns)
+        predicted = model.predict(test[selected_cols])
+        predicted[test.periods_before_closing == 0] = 0
+
+        current_mse = mean_squared_error(test.returns, predicted)
+        current_r2 = r2_score(test.returns, predicted) * 100
+        metrics_dict['train_{}_percent'.format(step * 10)] = {
+#             'train_elems':str(train.shape[0]),
+            'mse': current_mse,
+            'r2': current_r2
+        }
+    
+    report = pd.DataFrame(metrics_dict)
+
+    report['min_stats'] = report.iloc[:,:5].min(1).astype(np.float16)
+    report['max_stats'] = report.iloc[:,:5].max(1).astype(np.float16)
+    report['avg'] = report.mean(1).astype(np.float16)
+    return report
 
 def greedy_add_del_strategy(model, data, cols, valid_ratio, test_ratio, droprows=0, add_frequency=1):
     selected_cols = cols.copy()

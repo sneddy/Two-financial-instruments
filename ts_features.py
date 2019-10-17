@@ -5,9 +5,42 @@ from datetime import datetime
 
 def init_data(fname):
     data = pd.read_csv('data.csv')
+
     data['yx_spread'] = data.yprice - data.xprice
-    data['yx_relation'] = data.yprice / data.xprice
+    data['yx_relation'] = data.yprice  / data.xprice
     data['xy_relation'] = data.xprice / data.yprice
+    data['xy_geom'] = np.sqrt(data.xprice * data.yprice)
+    data['xy_garmonic'] = 2 / (1 / data.xprice + 1 / data.yprice)
+    
+#     data.xprice = (data.xprice - data.xprice.min())# / data.xprice.std() 
+#     data.yprice = (data.yprice - data.yprice.min())# / data.yprice.std() 
+    data['timestamp'] = data['timestamp'] // 1000
+    data['timestamp'] = data['timestamp'].apply(lambda stamp: datetime.fromtimestamp(stamp))
+    data['timestamp'] = data['timestamp'] - pd.Timedelta(hours=1) # for flexibility
+    data.index = data['timestamp']
+    
+    data['weekday'] = data.timestamp.dt.weekday
+    data['day'] = (data.timestamp.dt.date - data.timestamp.dt.date.min()).apply(lambda x: int(x.days))
+    day_close_time = data.day.map(data.groupby('day').timestamp.max())
+    data['periods_before_closing'] = (day_close_time - data.timestamp).apply(lambda x: x.seconds // 10)
+    day_open_time = data.day.map(data.groupby('day').timestamp.min())
+    data['periods_after_opening'] = (data.timestamp - day_open_time).apply(lambda x: x.seconds // 10)
+#     data.drop('timestamp', 1, inplace=True)
+    return data
+
+def init_norm_data(fname, min_train_ratio=0.1, eps=1e-5):
+    data = pd.read_csv('data.csv')
+    
+    min_train_rows = int(data.shape[0] * min_train_ratio)
+    data.yprice = (data.yprice - data.yprice[:min_train_rows].min()) / \
+        (data.yprice[:min_train_rows].max() - data.yprice[:min_train_rows].min())
+    data.xprice = (data.xprice - data.xprice[:min_train_rows].min()) / \
+        (data.xprice[:min_train_rows].max() - data.xprice[:min_train_rows].min())
+    
+    data['yx_spread'] = data.yprice - data.xprice
+    ynorm = data.yprice - data.yprice.head(1000).mean()
+    data['yx_relation'] = data.yprice  / (data.xprice + eps)
+    data['xy_relation'] = data.xprice / (data.yprice + eps)
     data['xy_geom'] = np.sqrt(data.xprice * data.yprice)
     data['xy_garmonic'] = 2 / (1 / data.xprice + 1 / data.yprice)
     
@@ -137,31 +170,31 @@ def add_time_depended_rolling(df, source_column, windows, agg_fun, agg_repr):
 def add_time_depended_dif(df, column, windows):
     pass
 
-def add_hand_feats(df):
+def add_hand_feats(df, eps=1e-5):
     close_price_per_day = df.groupby('day').timestamp.max().shift(1).map(
         df[['timestamp', 'yprice']].set_index('timestamp').yprice)
     y_mapped = df.day.map(close_price_per_day)
     
     df.loc[:, 'ydiff_from_closing'] = (df.yprice - y_mapped).fillna(0)
-    df.loc[:, 'yrel_from_closing'] = (df.yprice / y_mapped).fillna(1)
+    df.loc[:, 'yrel_from_closing'] = (df.yprice / (y_mapped + eps)).fillna(1)
     
     close_price_per_day = df.groupby('day').timestamp.max().shift(1).map(
         df[['timestamp', 'xprice']].set_index('timestamp').xprice)
     x_mapped = df.day.map(close_price_per_day)
     df.loc[:, 'xdiff_from_closing'] = (df.xprice - x_mapped).fillna(0)
-    df.loc[:, 'xrel_from_closing'] = (df.xprice / x_mapped).fillna(1)
+    df.loc[:, 'xrel_from_closing'] = (df.xprice / (x_mapped + eps)).fillna(1)
     
     open_price_per_day = df.groupby('day').timestamp.min().map(
         df[['timestamp', 'yprice']].set_index('timestamp').yprice)
     y_mapped = df.day.map(open_price_per_day)
     df.loc[:, 'ydiff_from_opening'] = df.yprice - y_mapped
-    df.loc[:, 'yrel_from_opening'] = df.yprice / y_mapped
+    df.loc[:, 'yrel_from_opening'] = df.yprice / (y_mapped + eps)
     
     open_price_per_day = df.groupby('day').timestamp.min().map(
         df[['timestamp', 'xprice']].set_index('timestamp').xprice)
     x_mapped = df.day.map(open_price_per_day)
     df.loc[:, 'xdiff_from_opening'] = df.xprice - x_mapped
-    df.loc[:, 'xrel_from_opening'] = df.xprice / x_mapped
+    df.loc[:, 'xrel_from_opening'] = df.xprice / (x_mapped + eps)
     
     new_columns = [
         'ydiff_from_closing', 'xdiff_from_closing',
