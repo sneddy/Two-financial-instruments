@@ -15,8 +15,9 @@ def time_split(data, valid_ratio, test_ratio):
     return train, valid, test
 
 
-def validate_sklearn_model(model, data, base_cols, valid_ratio, test_ratio, droprows=0, 
+def validate_sklearn_model(model, source_data, base_cols, valid_ratio, test_ratio, droprows=0, 
                            verbose=True, only_valid=False):
+    data = source_data.copy()
     selected_cols = copy(base_cols)
     helper_cols = list(set(selected_cols + ['periods_before_closing', 'returns']))
     train, valid, test = time_split(data[helper_cols], valid_ratio, test_ratio)
@@ -53,7 +54,8 @@ def validate_sklearn_model(model, data, base_cols, valid_ratio, test_ratio, drop
 #     metrics_dict['model'] = model
     return metrics_dict
 
-def validate_model_by_triplets(model, df, base_cols, triplets, droprows=0):
+def validate_model_by_triplets(model, source_data, base_cols, triplets, droprows=0):
+    df = source_data.copy()
     selected_cols = base_cols.copy()
     helper_cols = list(set(selected_cols + ['periods_before_closing', 'returns']))
     metrics_dict = {}
@@ -87,7 +89,8 @@ def validate_model_by_triplets(model, df, base_cols, triplets, droprows=0):
     report['avg'] = report.mean(1).astype(np.float16)
     return report
 
-def validate_model_by_pentate(model, df, base_cols, droprows=0):
+def validate_model_by_pentate(model, source_data, base_cols, droprows=0):
+    df = source_data.copy()
     selected_cols = base_cols.copy()
     helper_cols = list(set(selected_cols + ['periods_before_closing', 'returns']))
     metrics_dict = {}

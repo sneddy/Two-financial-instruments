@@ -74,7 +74,7 @@ def add_shifts(df, column, uselags):
     new_columns = []
     for lag in uselags:
         colname = '{}_lag_{}'.format(column, lag)
-        df.loc[:, colname] = df[column].shift(lag)
+        df.loc[:, colname] = df[column].shift(lag).values
         new_columns.append(colname)
     print(new_columns)
     return new_columns
@@ -133,14 +133,28 @@ def add_rsi(df, column, windows):
     print(new_columns)
     return new_columns  
 
-def add_ewma(df, column, windows):
+def add_ewma(df, column, halfsize_windows):
     new_columns = []
-    for window_size in windows:
+    for window_size in halfsize_windows:
         colname = '{}_ewma_{}'.format(column, window_size)
-        df.loc[:, colname] = pd.Series.ewm(df[column], span=window_size).mean()
+        ewm = pd.Series.ewm(df[column].drop_index(), halflife=window_size).mean().values
+        df.loc[:, colname] = ewm
         new_columns.append(colname)
     print(new_columns)
-    return new_columns 
+    return new_columns
+
+def add_intraday_ewma(df, column, halfsize_windows):
+    new_columns = []
+    days = df.day.unique()
+    for day in days:
+        df_mask = (df.day == day)
+        for window_size in halfsize_windows:
+            colname = '{}_dayly_ewma_{}'.format(column, window_size)
+            ewm = pd.Series.ewm(df.loc[df_mask, column], halflife=window_size).mean().values
+            df.loc[df_mask, colname] = ewm
+    new_columns = ['{}_dayly_ewma_{}'.format(column, window_size) for window_size in halfsize_windows]
+    print(new_columns)
+    return new_columns  
 
 def add_time_depended_rolling(df, source_column, windows, agg_fun, agg_repr):
     '''
