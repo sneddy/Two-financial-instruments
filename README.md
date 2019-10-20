@@ -24,11 +24,13 @@ It has been truncated to remove outliers. In the event that there is no price te
 The task is to build a model to predict the returns of asset Y using lagged price information of X and Y.
 The model will be judged on out-of-sample mean-squared prediction error, defined as:
 
+```latex
 MSPE = mean((returns - prediction) ^ 2)
+```
 
 To make the forecast at time t, you may use data up to and including time t.
 
-## Solution 
+## Decision requirements 
 
 The solution should be in the form of two functions
 
@@ -41,4 +43,11 @@ and returns an object containing the parameters of the fitted model.
 The "modelForecast" function takes the filename of a CSV file containing the test data and a set of parameters,
 and outputs a vector of predictions (one prediction for each observation in the data set).
 
+## File structure
+├── unet_pipeline
+│   ├── experiments
+│   │   ├── some_experiment
+│   │   │   ├── train_config.yaml
+│   │   │   ├── inference_config.yaml
+└── requirements.txt
  
