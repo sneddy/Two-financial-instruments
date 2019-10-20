@@ -53,12 +53,13 @@ or
 python modelEstimate.py train.csv
 python modelForecast.py train.csv test.csv
 ```
+I pass the parameter test.csv to modelForecast.py only for calculating features, not for cheating :)
 
 ## File structure
-├── unet_pipeline
-│   ├── experiments
-│   │   ├── some_experiment
-│   │   │   ├── train_config.yaml
-│   │   │   ├── inference_config.yaml
+├── FeatureSelection.ipynb - experiments with feature selection
+├── FinalHeap.ipynb - experiments with building features
+├── some_experiment
+├── train_config.yaml
+├── inference_config.yaml
 └── requirements.txt
  
