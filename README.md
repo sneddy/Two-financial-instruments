@@ -70,6 +70,19 @@ I pass the parameter test.csv to modelForecast.py only for calculating features,
     ├── ts_features.py          - basic features constructors
     └── ts_validation.py        - different methods of validation
  
+ 
+ ## Features 
+From xprice and yprice I build 6 main features - and the other features were obtained as various kinds of aggregations and moving statistics above them.
+
+**Main features:**
+- log_features (log x, log y)
+- spread_features (x - y)
+- relation_features (x / y)
+- geom_features ((x * y) ^ 0.5)
+- square_features ((x ^ 2 + y ^ 2) / 2) ^ 0.5
+- garmonic_features (2 / (1 / x + 1 / y))
+
+ 
  ## Validation
  I split half of my data to 5 segments:
  - Train from 0 to 50% - validation from 50% to 60%
@@ -80,7 +93,7 @@ I pass the parameter test.csv to modelForecast.py only for calculating features,
  
  After that I calculate 5 number: r2 score, multiplied by 100 for each segment. 
  
- My validation strategy: I tried to maximize the average and minimum among these numbers
+ **My validation strategy:** I tried to maximize the average **and** minimum among these numbers
  
  My final metrics on validation:
  - validation from 50% to 60%:  1.73
