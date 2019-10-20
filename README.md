@@ -72,7 +72,9 @@ I pass the parameter test.csv to modelForecast.py only for calculating features,
  
  
  ## Features 
-From xprice and yprice I build 6 main features - and the other features were obtained as various kinds of aggregations and moving statistics above them.
+From xprice and yprice I build 6 main features - and the other features were obtained as various kinds of aggregations and moving statistics above them. 
+
+The total number of features was about 700
 
 **Main features:**
 - log_features (log x, log y)
@@ -81,6 +83,7 @@ From xprice and yprice I build 6 main features - and the other features were obt
 - geom_features ((x * y) ^ 0.5)
 - square_features ((x ^ 2 + y ^ 2) / 2) ^ 0.5
 - garmonic_features (2 / (1 / x + 1 / y))
+
 
  
  ## Validation
@@ -103,6 +106,10 @@ From xprice and yprice I build 6 main features - and the other features were obt
  - validation from 50% to 100%: 5.42
  - min  score on validation:    0.83  
  - mean score on validation:    3.25
+ 
+ I used this scheme of validation and add-del strategy for greedy features selection.
+ 
+ The final number of features has been reduced to 42.
  
  
  
