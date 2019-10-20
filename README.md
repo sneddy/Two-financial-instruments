@@ -70,3 +70,28 @@ I pass the parameter test.csv to modelForecast.py only for calculating features,
     ├── ts_features.py          - basic features constructors
     └── ts_validation.py        - different methods of validation
  
+ ## Validation
+ I split half of my data to 5 segments:
+ - Train from 0 to 50% - validation from 50% to 60%
+ - Train from 0 to 60% - validation from 60% to 70%
+ - Train from 0 to 70% - validation from 70% to 80%
+ - Train from 0 to 80% - validation from 80% to 90%
+ - Train from 0 to 90% - validation from 90% to 100%
+ 
+ After that I calculate 5 number: r2 score, multiplied by 100 for each segment. 
+ 
+ My validation strategy: I tried to maximize the average and minimum among these numbers
+ 
+ My final metrics on validation:
+ - validation from 50% to 60%:  1.73
+ - validation from 50% to 70%:  3.69 
+ - validation from 50% to 80%:  0.83
+ - validation from 50% to 90%:  4.83
+ - validation from 50% to 100%: 5.42
+ - min  score on validation:    0.83  
+ - mean score on validation:    3.25
+ 
+ 
+ 
+ 
+ 
