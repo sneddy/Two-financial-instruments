@@ -24,7 +24,7 @@ It has been truncated to remove outliers. In the event that there is no price te
 The task is to build a model to predict the returns of asset Y using lagged price information of X and Y.
 The model will be judged on out-of-sample mean-squared prediction error, defined as:
 
-![equation](MSPE = mean((returns - prediction) ^ 2))
+MSPE = mean((returns - prediction) ^ 2)
 
 To make the forecast at time t, you may use data up to and including time t.
 
