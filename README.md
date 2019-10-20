@@ -43,6 +43,17 @@ and returns an object containing the parameters of the fitted model.
 The "modelForecast" function takes the filename of a CSV file containing the test data and a set of parameters,
 and outputs a vector of predictions (one prediction for each observation in the data set).
 
+## Launch
+Suppose the files train.csv and test.csv are in the root folder. Then you can run bash command
+```nash
+sh run.sh
+```
+or 
+```bash
+python modelEstimate.py train.csv
+python modelForecast.py train.csv test.csv
+```
+
 ## File structure
 ├── unet_pipeline
 │   ├── experiments
