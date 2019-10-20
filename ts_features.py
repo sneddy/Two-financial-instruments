@@ -3,63 +3,68 @@ import numpy as np
 from datetime import datetime
 
 
-def init_data(fname):
-    data = pd.read_csv('data.csv')
-
+def init_data(train_fname, test_fname=None):
+    print('loading train file...')
+    data = pd.read_csv(train_fname)
+    ntrain = data.shape[0]
+    if test_fname:
+        print('loading test file...')
+        test_data = pd.read_csv(test_fname)
+        data = data.append(test_data).reset_index(drop=True)
+    data['xprice'] -= 127 #WARNING!
+    data['yprice'] -= 146 #WARNING!
+    
     data['yx_spread'] = data.yprice - data.xprice
     data['yx_relation'] = data.yprice  / data.xprice
     data['xy_relation'] = data.xprice / data.yprice
+    data['xy_square'] = np.sqrt(data.xprice ** 2 + data.yprice ** 2) / 2
     data['xy_geom'] = np.sqrt(data.xprice * data.yprice)
     data['xy_garmonic'] = 2 / (1 / data.xprice + 1 / data.yprice)
     
-#     data.xprice = (data.xprice - data.xprice.min())# / data.xprice.std() 
-#     data.yprice = (data.yprice - data.yprice.min())# / data.yprice.std() 
     data['timestamp'] = data['timestamp'] // 1000
     data['timestamp'] = data['timestamp'].apply(lambda stamp: datetime.fromtimestamp(stamp))
     data['timestamp'] = data['timestamp'] - pd.Timedelta(hours=1) # for flexibility
     data.index = data['timestamp']
     
     data['weekday'] = data.timestamp.dt.weekday
+    data['is_end_of_week'] = (data.timestamp.dt.weekday >= 2).astype(int)
+    
     data['day'] = (data.timestamp.dt.date - data.timestamp.dt.date.min()).apply(lambda x: int(x.days))
     day_close_time = data.day.map(data.groupby('day').timestamp.max())
     data['periods_before_closing'] = (day_close_time - data.timestamp).apply(lambda x: x.seconds // 10)
     day_open_time = data.day.map(data.groupby('day').timestamp.min())
     data['periods_after_opening'] = (data.timestamp - day_open_time).apply(lambda x: x.seconds // 10)
 #     data.drop('timestamp', 1, inplace=True)
-    return data
+    return data, ntrain
 
-def init_norm_data(fname, min_train_ratio=0.1, eps=1e-5):
-    data = pd.read_csv('data.csv')
+def add_openclose_diff(df, eps=1e-5):
+    close_price_per_day = df.groupby('day').timestamp.max().shift(1).map(
+        df[['timestamp', 'yprice']].set_index('timestamp').yprice)
+    y_mapped = df.day.map(close_price_per_day)
     
-    min_train_rows = int(data.shape[0] * min_train_ratio)
-    data.yprice = (data.yprice - data.yprice[:min_train_rows].min()) / \
-        (data.yprice[:min_train_rows].max() - data.yprice[:min_train_rows].min())
-    data.xprice = (data.xprice - data.xprice[:min_train_rows].min()) / \
-        (data.xprice[:min_train_rows].max() - data.xprice[:min_train_rows].min())
+    df.loc[:, 'ydiff_from_closing'] = (df.yprice - y_mapped).fillna(0)
+   
+    close_price_per_day = df.groupby('day').timestamp.max().shift(1).map(
+        df[['timestamp', 'xprice']].set_index('timestamp').xprice)
+    x_mapped = df.day.map(close_price_per_day)
+    df.loc[:, 'xdiff_from_closing'] = (df.xprice - x_mapped).fillna(0)
+   
+    open_price_per_day = df.groupby('day').timestamp.min().map(
+        df[['timestamp', 'yprice']].set_index('timestamp').yprice)
+    y_mapped = df.day.map(open_price_per_day)
+    df.loc[:, 'ydiff_from_opening'] = df.yprice - y_mapped
     
-    data['yx_spread'] = data.yprice - data.xprice
-    ynorm = data.yprice - data.yprice.head(1000).mean()
-    data['yx_relation'] = data.yprice  / (data.xprice + eps)
-    data['xy_relation'] = data.xprice / (data.yprice + eps)
-    data['xy_geom'] = np.sqrt(data.xprice * data.yprice)
-    data['xy_garmonic'] = 2 / (1 / data.xprice + 1 / data.yprice)
-    
-#     data.xprice = (data.xprice - data.xprice.min())# / data.xprice.std() 
-#     data.yprice = (data.yprice - data.yprice.min())# / data.yprice.std() 
-    data['timestamp'] = data['timestamp'] // 1000
-    data['timestamp'] = data['timestamp'].apply(lambda stamp: datetime.fromtimestamp(stamp))
-    data['timestamp'] = data['timestamp'] - pd.Timedelta(hours=1) # for flexibility
-    data.index = data['timestamp']
-    
-    data['weekday'] = data.timestamp.dt.weekday
-    data['day'] = (data.timestamp.dt.date - data.timestamp.dt.date.min()).apply(lambda x: int(x.days))
-    day_close_time = data.day.map(data.groupby('day').timestamp.max())
-    data['periods_before_closing'] = (day_close_time - data.timestamp).apply(lambda x: x.seconds // 10)
-    day_open_time = data.day.map(data.groupby('day').timestamp.min())
-    data['periods_after_opening'] = (data.timestamp - day_open_time).apply(lambda x: x.seconds // 10)
-#     data.drop('timestamp', 1, inplace=True)
-    return data
-
+    open_price_per_day = df.groupby('day').timestamp.min().map(
+        df[['timestamp', 'xprice']].set_index('timestamp').xprice)
+    x_mapped = df.day.map(open_price_per_day)
+    df.loc[:, 'xdiff_from_opening'] = df.xprice - x_mapped
+   
+    new_columns = [
+        'ydiff_from_closing', 'xdiff_from_closing',
+        'ydiff_from_closing', 'xdiff_from_closing',
+   ]
+    print(new_columns)
+    return new_columns
 
 def add_diffs(df, column, uselags):
     new_columns = []
@@ -183,41 +188,6 @@ def add_time_depended_rolling(df, source_column, windows, agg_fun, agg_repr):
 
 def add_time_depended_dif(df, column, windows):
     pass
-
-def add_hand_feats(df, eps=1e-5):
-    close_price_per_day = df.groupby('day').timestamp.max().shift(1).map(
-        df[['timestamp', 'yprice']].set_index('timestamp').yprice)
-    y_mapped = df.day.map(close_price_per_day)
-    
-    df.loc[:, 'ydiff_from_closing'] = (df.yprice - y_mapped).fillna(0)
-    df.loc[:, 'yrel_from_closing'] = (df.yprice / (y_mapped + eps)).fillna(1)
-    
-    close_price_per_day = df.groupby('day').timestamp.max().shift(1).map(
-        df[['timestamp', 'xprice']].set_index('timestamp').xprice)
-    x_mapped = df.day.map(close_price_per_day)
-    df.loc[:, 'xdiff_from_closing'] = (df.xprice - x_mapped).fillna(0)
-    df.loc[:, 'xrel_from_closing'] = (df.xprice / (x_mapped + eps)).fillna(1)
-    
-    open_price_per_day = df.groupby('day').timestamp.min().map(
-        df[['timestamp', 'yprice']].set_index('timestamp').yprice)
-    y_mapped = df.day.map(open_price_per_day)
-    df.loc[:, 'ydiff_from_opening'] = df.yprice - y_mapped
-    df.loc[:, 'yrel_from_opening'] = df.yprice / (y_mapped + eps)
-    
-    open_price_per_day = df.groupby('day').timestamp.min().map(
-        df[['timestamp', 'xprice']].set_index('timestamp').xprice)
-    x_mapped = df.day.map(open_price_per_day)
-    df.loc[:, 'xdiff_from_opening'] = df.xprice - x_mapped
-    df.loc[:, 'xrel_from_opening'] = df.xprice / (x_mapped + eps)
-    
-    new_columns = [
-        'ydiff_from_closing', 'xdiff_from_closing',
-        'yrel_from_closing', 'xrel_from_closing',
-        'ydiff_from_closing', 'xdiff_from_closing',
-        'yrel_from_opening', 'xrel_from_opening'
-    ]
-    print(new_columns)
-    return new_columns
 
 def add_full_history_diff(df, col):
     mean = df[col].cumsum() / np.arange(1, df.shape[0] + 1)
