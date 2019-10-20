@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 from sklearn.metrics import mean_squared_error, r2_score
 from copy import copy
+import scipy
 
 def time_split(data, valid_ratio, test_ratio):
     n_valid = max(1, int(data.shape[0] * valid_ratio))
@@ -14,6 +15,11 @@ def time_split(data, valid_ratio, test_ratio):
     merged_test = valid.append(test).reset_index(drop=True)
     return train, valid, test
 
+def rsquared(x, y):
+    """ Return R^2 where x and y are array-like."""
+
+    slope, intercept, r_value, p_value, std_err = scipy.stats.linregress(x, y)
+    return r_value**2
 
 def validate_sklearn_model(model, source_data, base_cols, valid_ratio, test_ratio, droprows=0, 
                            verbose=True, only_valid=False):
@@ -35,7 +41,8 @@ def validate_sklearn_model(model, source_data, base_cols, valid_ratio, test_rati
         y_valid_predicted[valid.periods_before_closing == 0] = 0
         
         metrics_dict['valid_mse'] = mean_squared_error(y_valid_predicted, valid.returns)
-        metrics_dict['valid_r2'] = r2_score(valid.returns, y_valid_predicted) * 100
+#         metrics_dict['valid_r2'] = r2_score(valid.returns, y_valid_predicted) * 100
+        metrics_dict['valid_r2'] = rsquared(valid.returns, y_valid_predicted) * 100
         if verbose:
             print('\nValid MSE: \t\t {:.5}'.format(metrics_dict['valid_mse']))
             print('Valid R2 (x100): \t {:.5}'.format(metrics_dict['valid_r2']))
@@ -46,7 +53,9 @@ def validate_sklearn_model(model, source_data, base_cols, valid_ratio, test_rati
         y_test_predicted[test.periods_before_closing == 0] = 0
 
         metrics_dict['test_mse'] = mean_squared_error(y_test_predicted, test.returns)
-        metrics_dict['test_r2'] = r2_score(test.returns, y_test_predicted) * 100
+#         metrics_dict['test_r2'] = r2_score(test.returns, y_test_predicted) * 100
+        metrics_dict['test_r2'] = rsquared(test.returns, y_test_predicted) * 100
+
         if verbose:
             print('\nTest MSE: \t\t {:.5}'.format(metrics_dict['test_mse']))
             print('Test R2 (x100): \t {:.5}'.format(metrics_dict['test_r2']))
@@ -108,7 +117,8 @@ def validate_model_by_pentate(model, source_data, base_cols, droprows=0):
         predicted[test.periods_before_closing == 0] = 0
 
         current_mse = mean_squared_error(test.returns, predicted)
-        current_r2 = r2_score(test.returns, predicted) * 100
+#         current_r2 = r2_score(test.returns, predicted) * 100
+        current_r2 = rsquared(test.returns, predicted) * 100
         metrics_dict['train_{}_percent'.format(step * 10)] = {
 #             'train_elems':str(train.shape[0]),
             'mse': current_mse,
@@ -117,9 +127,9 @@ def validate_model_by_pentate(model, source_data, base_cols, droprows=0):
     
     report = pd.DataFrame(metrics_dict)
 
-    report['min_stats'] = report.iloc[:,:5].min(1).astype(np.float16)
-    report['max_stats'] = report.iloc[:,:5].max(1).astype(np.float16)
-    report['avg'] = report.mean(1).astype(np.float16)
+    report['min_stats'] = report.iloc[:,:5].min(1).astype(np.float32)
+    report['max_stats'] = report.iloc[:,:5].max(1).astype(np.float32)
+    report['avg'] = report.mean(1).astype(np.float32)
     return report
 
 def greedy_add_del_strategy(model, data, cols, valid_ratio, test_ratio, droprows=0, add_frequency=1):
