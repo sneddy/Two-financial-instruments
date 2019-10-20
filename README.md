@@ -56,10 +56,34 @@ python modelForecast.py train.csv test.csv
 I pass the parameter test.csv to modelForecast.py only for calculating features, not for cheating :)
 
 ## File structure
-  ├── FeatureSelection.ipynb - experiments with feature selection
-  ├── FinalHeap.ipynb - experiments with building features
-  ├── some_experiment
-  ├── train_config.yaml
-  ├── inference_config.yaml
-  └── requirements.txt
+    ├── unet_pipeline
+    │   ├── experiments
+    │   │   ├── some_experiment
+    │   │   │   ├── train_config.yaml
+    │   │   │   ├── inference_config.yaml
+    │   │   │   ├── submit_config.yaml
+    │   │   │   ├── checkpoints
+    │   │   │   │   ├── fold_i
+    │   │   │   │   │   ├──topk_checkpoint_from_fold_i_epoch_k.pth 
+    │   │   │   │   │   ├──summary.csv
+    │   │   │   │   ├──best_checkpoint_from_fold_i.pth
+    │   │   │   ├── log
+    ├── input                
+    │   ├── dicom_train
+    │   │   ├── some_folder
+    │   │   │   ├── some_folder
+    │   │   │   │   ├── some_train_file.dcm
+    │   ├── dicom_test   
+    │   │   ├── some_folder
+    │   │   │   ├── some_folder
+    │   │   │   │   ├── some_test_file.dcm
+    |   ├── new_sample_submission.csv
+    │   └── new_train_rle.csv
+    └── requirements.txt
+    
+    ├── FeatureSelection.ipynb - experiments with feature selection
+    ├── FinalHeap.ipynb - experiments with building features
+    ├── some_experiment
+    ├── train_config.yaml
+    └── requirements.txt
  
