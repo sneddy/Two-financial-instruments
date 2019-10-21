@@ -57,7 +57,7 @@ With default parameters:
 - modelEstimate.py will train ridge model and store to ridge_weights.model
 - modelForecast.py will predict ridge model and store result to predicted.npy
 
-I pass the parameter test.csv to modelForecast.py only for calculating features, not for cheating :)
+I pass the parameter train.csv to modelForecast.py only for calculating features, not for cheating :)
 
 ## File structure
     ├── FeatureSelection.ipynb  - experiments with feature selection
