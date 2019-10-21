@@ -100,10 +100,10 @@ The total number of features was about 700
  
  My final metrics on validation:
  - validation from 50% to 60%:  1.73
- - validation from 50% to 70%:  3.69 
- - validation from 50% to 80%:  0.83
- - validation from 50% to 90%:  4.83
- - validation from 50% to 100%: 5.42
+ - validation from 60% to 70%:  3.69 
+ - validation from 70% to 80%:  0.83
+ - validation from 80% to 90%:  4.83
+ - validation from 90% to 100%: 5.42
  - min  score on validation:    0.83  
  - mean score on validation:    3.25
  
